@@ -1,7 +1,7 @@
-using System;
 using System.Text;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Util;
+using Nethereum.Model;
 
 namespace Nethereum.Signer
 {
@@ -13,13 +13,18 @@ namespace Nethereum.Signer
             return EthECKey.RecoverFromSignature(ecdaSignature, hashMessage).GetPublicAddress();
         }
 
+        public virtual string EcRecover(byte[] hashMessage, EthECDSASignature signature)
+        {
+            return EthECKey.RecoverFromSignature(signature, hashMessage).GetPublicAddress();
+        }
+
         public byte[] Hash(byte[] plainMessage)
         {
             var hash = new Sha3Keccack().CalculateHash(plainMessage);
             return hash;
         }
 
-        public string HashAndEcRecover(string plainMessage, string signature)
+        public virtual string HashAndEcRecover(string plainMessage, string signature)
         {
             return EcRecover(Hash(Encoding.UTF8.GetBytes(plainMessage)), signature);
         }
@@ -69,7 +74,7 @@ namespace Nethereum.Signer
 
         private static string CreateStringSignature(EthECDSASignature signature)
         {
-            return EthECDSASignature.CreateStringSignature(signature);
+            return signature.CreateStringSignature();
         }
 
         public static EthECDSASignature ExtractEcdsaSignature(string signature)

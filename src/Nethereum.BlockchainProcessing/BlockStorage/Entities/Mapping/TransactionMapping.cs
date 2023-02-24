@@ -24,6 +24,9 @@ namespace Nethereum.BlockchainProcessing.BlockStorage.Entities.Mapping
             to.GasPrice = @from.GasPrice?.Value.ToString();
             to.Input = @from.Input ?? string.Empty;
             to.Nonce = @from.Nonce?.Value.ToString();
+            to.MaxFeePerGas = @from.MaxFeePerGas?.Value.ToString();
+            to.MaxPriorityFeePerGas = @from.MaxPriorityFeePerGas?.Value.ToString();
+
         }
 
         public static Transaction MapToStorageEntityForUpsert(this TransactionReceiptVO transactionReceiptVO)
@@ -45,7 +48,7 @@ namespace Nethereum.BlockchainProcessing.BlockStorage.Entities.Mapping
             tx.TimeStamp = transactionReceiptVO.BlockTimestamp?.Value.ToString();
             tx.Error = transactionReceiptVO.Error ?? string.Empty;
             tx.HasVmStack = transactionReceiptVO.HasVmStack;
-
+            tx.EffectiveGasPrice = transactionReceiptVO.TransactionReceipt.EffectiveGasPrice?.Value.ToString();
             tx.UpdateRowDates();
 
             return tx;
@@ -71,6 +74,7 @@ namespace Nethereum.BlockchainProcessing.BlockStorage.Entities.Mapping
             tx.TimeStamp = transactionReceiptVO.BlockTimestamp.Value.ToString();
             tx.Error = string.Empty;
             tx.HasVmStack = transactionReceiptVO.HasVmStack;
+            tx.EffectiveGasPrice = transactionReceiptVO.TransactionReceipt.EffectiveGasPrice.Value.ToString();
 
             tx.UpdateRowDates();
 

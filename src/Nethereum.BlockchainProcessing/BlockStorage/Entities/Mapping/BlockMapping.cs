@@ -35,8 +35,10 @@ namespace Nethereum.BlockchainProcessing.BlockStorage.Entities.Mapping
             block.ParentHash = source.ParentHash ?? string.Empty;
             block.Miner = source.Miner ?? string.Empty;
             block.Nonce = source.Nonce;
+            block.BaseFeePerGas = source.BaseFeePerGas?.Value.ToString();
             block.TransactionCount = TransactionCount(source);
-        }
+           
+         }
 
         private static int TransactionCount(Nethereum.RPC.Eth.DTOs.Block block)
         {

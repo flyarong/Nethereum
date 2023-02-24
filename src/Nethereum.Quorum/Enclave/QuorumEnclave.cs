@@ -18,7 +18,7 @@ namespace Nethereum.Quorum.Enclave
             _privateEndPoint = privateEndPoint;
             if (authHeaderValue == null)
             {
-                authHeaderValue = UserAuthentication.FromUrl(privateEndPoint)?.GetBasicAuthenticationHeaderValue();
+                authHeaderValue = BasicAuthenticationHeaderHelper.GetBasicAuthenticationHeaderValueFromUri(new Uri(privateEndPoint));
             }
             _authHeaderValue = authHeaderValue;
 
@@ -26,8 +26,8 @@ namespace Nethereum.Quorum.Enclave
 
         public async Task<string> StoreRawAsync(string payload, string from)
         {
-            var response = await SendRequestAsync<StoreRawRequest, StoreRawResponse>(new StoreRawRequest() {Payload = payload, From = from},
-                "storeraw");
+            var response = await SendRequestAsync<StoreRawRequest, StoreRawResponse>(new StoreRawRequest() { Payload = payload, From = from },
+                "storeraw").ConfigureAwait(false);
             return response.Key;
         }
 

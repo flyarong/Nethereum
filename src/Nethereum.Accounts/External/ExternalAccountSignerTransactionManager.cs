@@ -4,31 +4,33 @@ using System.Threading.Tasks;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexTypes;
 using Nethereum.JsonRpc.Client;
+using Nethereum.Model;
 using Nethereum.RPC.Eth.DTOs;
+using Nethereum.RPC.Eth.Mappers;
 using Nethereum.RPC.Eth.Transactions;
 using Nethereum.RPC.NonceServices;
 using Nethereum.RPC.TransactionManagers;
 using Nethereum.Signer;
 using Nethereum.Util;
-using Transaction = Nethereum.Signer.Transaction;
 
 namespace Nethereum.Web3.Accounts
 {
     public class ExternalAccountSignerTransactionManager : TransactionManagerBase
     {
-        private readonly TransactionSigner _transactionSigner;
-        public BigInteger? ChainId { get; private set; }
-
-        public ExternalAccountSignerTransactionManager(IClient rpcClient, ExternalAccount account, BigInteger? chainId = null)
+        private readonly LegacyTransactionSigner _legacyTransactionSigner;
+        private readonly Transaction1559Signer _transaction1559Signer;
+        public ExternalAccountSignerTransactionManager(IClient rpcClient, ExternalAccount account,
+            BigInteger? chainId = null)
         {
             ChainId = chainId;
             Account = account ?? throw new ArgumentNullException(nameof(account));
             Client = rpcClient;
-            _transactionSigner = new TransactionSigner();
+            _legacyTransactionSigner = new LegacyTransactionSigner();
+            _transaction1559Signer = new Transaction1559Signer();
         }
 
 
-        public override BigInteger DefaultGas { get; set; } = Transaction.DEFAULT_GAS_LIMIT;
+        public override BigInteger DefaultGas { get; set; } = SignedLegacyTransaction.DEFAULT_GAS_LIMIT;
 
 
         public override Task<string> SendTransactionAsync(TransactionInput transactionInput)
@@ -47,10 +49,12 @@ namespace Nethereum.Web3.Accounts
             if (transaction == null) throw new ArgumentNullException(nameof(transaction));
             if (!transaction.From.IsTheSameAddress(Account.Address))
                 throw new Exception("Invalid account used signing");
+
             SetDefaultGasPriceAndCostIfNotSet(transaction);
 
             var nonce = transaction.Nonce;
-            if (nonce == null) throw new ArgumentNullException(nameof(transaction), "Transaction nonce has not been set");
+            if (nonce == null)
+                throw new ArgumentNullException(nameof(transaction), "Transaction nonce has not been set");
 
             var gasPrice = transaction.GasPrice;
             var gasLimit = transaction.Gas;
@@ -60,19 +64,32 @@ namespace Nethereum.Web3.Accounts
             string signedTransaction;
 
             var externalSigner = ((ExternalAccount) Account).ExternalSigner;
-            if (ChainId == null)
+
+            if (externalSigner.Supported1559 && transaction.Type != null &&
+                transaction.Type.Value == TransactionType.EIP1559.AsByte())
             {
-                signedTransaction = await _transactionSigner.SignTransactionAsync(externalSigner,
-                    transaction.To,
-                    value.Value, nonce,
-                    gasPrice.Value, gasLimit.Value, transaction.Data).ConfigureAwait(false);
+                var maxPriorityFeePerGas = transaction.MaxPriorityFeePerGas.Value;
+                var maxFeePerGas = transaction.MaxFeePerGas.Value;
+                if (ChainId == null) throw new ArgumentException("ChainId required for TransactionType 0X02 EIP1559");
+
+                var transaction1559 = new Transaction1559(ChainId.Value, nonce, maxPriorityFeePerGas, maxFeePerGas,
+                    gasLimit, transaction.To, value, transaction.Data,
+                    transaction.AccessList.ToSignerAccessListItemArray());
+                await _transaction1559Signer.SignExternallyAsync(externalSigner, transaction1559).ConfigureAwait(false);
+                signedTransaction = transaction1559.GetRLPEncoded().ToHex();
             }
             else
             {
-                signedTransaction = await _transactionSigner.SignTransactionAsync(externalSigner, ChainId.Value,
-                    transaction.To,
-                    value.Value, nonce,
-                    gasPrice.Value, gasLimit.Value, transaction.Data);
+                if (ChainId == null)
+                    signedTransaction = await _legacyTransactionSigner.SignTransactionAsync(externalSigner,
+                        transaction.To,
+                        value.Value, nonce,
+                        gasPrice.Value, gasLimit.Value, transaction.Data).ConfigureAwait(false);
+                else
+                    signedTransaction = await _legacyTransactionSigner.SignTransactionAsync(externalSigner, ChainId.Value,
+                        transaction.To,
+                        value.Value, nonce,
+                        gasPrice.Value, gasLimit.Value, transaction.Data).ConfigureAwait(false);
             }
 
             return signedTransaction;
@@ -91,8 +108,18 @@ namespace Nethereum.Web3.Accounts
                 throw new Exception("Invalid account used signing");
             var nonce = await GetNonceAsync(transaction).ConfigureAwait(false);
             transaction.Nonce = nonce;
-            var gasPrice = await GetGasPriceAsync(transaction).ConfigureAwait(false);
-            transaction.GasPrice = gasPrice;
+
+            var externalSigner = ((ExternalAccount) Account).ExternalSigner;
+            if (externalSigner.Supported1559)
+            {
+                await SetTransactionFeesOrPricingAsync(transaction).ConfigureAwait(false);
+            }
+            else
+            {
+                var gasPrice = await GetGasPriceAsync(transaction).ConfigureAwait(false);
+                transaction.GasPrice = gasPrice;
+            }
+
             return await SignTransactionExternallyAsync(transaction).ConfigureAwait(false);
         }
 
@@ -108,6 +135,7 @@ namespace Nethereum.Web3.Accounts
                 Account.NonceService.Client = Client;
                 nonce = await Account.NonceService.GetNextNonceAsync().ConfigureAwait(false);
             }
+
             return nonce;
         }
 

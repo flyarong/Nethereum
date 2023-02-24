@@ -1,5 +1,9 @@
 using System;
-using Common.Logging;
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_1_OR_GREATER || NET461_OR_GREATER || NET5_0_OR_GREATER
+using Microsoft.Extensions.Logging;
+#else
+using Nethereum.JsonRpc.Client;
+#endif
 using Nethereum.BlockchainProcessing.BlockProcessing;
 using Nethereum.BlockchainProcessing.BlockStorage;
 using Nethereum.BlockchainProcessing.BlockStorage.Repositories;
@@ -20,20 +24,20 @@ namespace Nethereum.BlockchainProcessing.Services
 
 #if !DOTNET35
 
-        public BlockchainProcessor CreateBlockProcessor(
+        public BlockchainCrawlingProcessor CreateBlockProcessor(
             Action<BlockProcessingSteps> stepsConfiguration, 
             uint minimumBlockConfirmations, 
-            ILog log = null) => CreateBlockProcessor(
+            ILogger log = null) => CreateBlockProcessor(
                 new InMemoryBlockchainProgressRepository(),
                 stepsConfiguration, 
                 minimumBlockConfirmations, 
                 log);
 
-        public BlockchainProcessor CreateBlockProcessor(
+        public BlockchainCrawlingProcessor CreateBlockProcessor(
             IBlockProgressRepository blockProgressRepository,
             Action<BlockProcessingSteps> stepsConfiguration,
             uint minimumBlockConfirmations,
-            ILog log = null)
+            ILogger log = null)
         {
             var processingSteps = new BlockProcessingSteps();
             var orchestrator = new BlockCrawlOrchestrator(_ethApiContractService, processingSteps );
@@ -41,14 +45,14 @@ namespace Nethereum.BlockchainProcessing.Services
 
             stepsConfiguration?.Invoke(processingSteps);
 
-            return new BlockchainProcessor(orchestrator, blockProgressRepository, lastConfirmedBlockNumberService, log);
+            return new BlockchainCrawlingProcessor(orchestrator, blockProgressRepository, lastConfirmedBlockNumberService, log);
         }
 
-        public BlockchainProcessor CreateBlockStorageProcessor(
+        public BlockchainCrawlingProcessor CreateBlockStorageProcessor(
             IBlockchainStoreRepositoryFactory blockchainStorageFactory, 
             uint minimumBlockConfirmations, 
-            Action<BlockProcessingSteps> configureSteps = null, 
-            ILog log = null) => CreateBlockStorageProcessor(
+            Action<BlockProcessingSteps> configureSteps = null,
+            ILogger log = null) => CreateBlockStorageProcessor(
                 blockchainStorageFactory, 
                 null, 
                 minimumBlockConfirmations, 
@@ -56,12 +60,12 @@ namespace Nethereum.BlockchainProcessing.Services
                 log);
 
 
-        public BlockchainProcessor CreateBlockStorageProcessor(
+        public BlockchainCrawlingProcessor CreateBlockStorageProcessor(
             IBlockchainStoreRepositoryFactory blockchainStorageFactory,
             IBlockProgressRepository blockProgressRepository,
             uint minimumBlockConfirmations,
             Action<BlockProcessingSteps> configureSteps = null,
-            ILog log = null)
+            ILogger log = null)
         {
             var processingSteps = new BlockStorageProcessingSteps(blockchainStorageFactory);
             var orchestrator = new BlockCrawlOrchestrator(_ethApiContractService, processingSteps);
@@ -76,7 +80,7 @@ namespace Nethereum.BlockchainProcessing.Services
 
             configureSteps?.Invoke(processingSteps);
 
-            return new BlockchainProcessor(orchestrator, blockProgressRepository, lastConfirmedBlockNumberService, log);
+            return new BlockchainCrawlingProcessor(orchestrator, blockProgressRepository, lastConfirmedBlockNumberService, log);
 
         }
 

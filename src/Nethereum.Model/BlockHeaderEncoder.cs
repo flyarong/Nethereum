@@ -10,16 +10,39 @@ namespace Nethereum.Model
         public static BlockHeaderEncoder Current { get; } = new BlockHeaderEncoder();
 
 
-        public byte[] EncodeCliqueSigHeaderAndHash(BlockHeader header)
+        public byte[] EncodeCliqueSigHeaderAndHash(BlockHeader header, bool legacyMode = false)
         {
-            return new Util.Sha3Keccack().CalculateHash(EncodeCliqueSigHeader(header));
+            return new Util.Sha3Keccack().CalculateHash(EncodeCliqueSigHeader(header, legacyMode));
         }
 
-       
-
-        public byte[] EncodeCliqueSigHeader(BlockHeader header)
+        public byte[] EncodeCliqueSigHeader(BlockHeader header, bool legacyMode = false)
         {
-            return RLP.RLP.EncodeElementsAndList(
+            if (!legacyMode && header.BaseFee != null)
+            {
+                return RLP.RLP.EncodeDataItemsAsElementOrListAndCombineAsList(new byte[][]
+                    {
+                        header.ParentHash,
+                        header.UnclesHash,
+                        header.Coinbase.HexToByteArray(),
+                        header.StateRoot,
+                        header.TransactionsHash,
+                        header.ReceiptHash,
+                        header.LogsBloom,
+                        header.Difficulty.ToBytesForRLPEncoding(),
+                        header.BlockNumber.ToBytesForRLPEncoding(),
+                        header.GasLimit.ToBytesForRLPEncoding(),
+                        header.GasUsed.ToBytesForRLPEncoding(),
+                        header.Timestamp.ToBytesForRLPEncoding(),
+                        header.ExtraData.Take(header.ExtraData.Length - 65).ToArray(),
+                        header.MixHash,
+                        header.Nonce,
+                        header.BaseFee.Value.ToBytesForRLPEncoding()
+                    }
+                );
+            }
+
+            return RLP.RLP.EncodeDataItemsAsElementOrListAndCombineAsList(new byte[][]
+            {
                 header.ParentHash,
                 header.UnclesHash,
                 header.Coinbase.HexToByteArray(),
@@ -35,31 +58,57 @@ namespace Nethereum.Model
                 header.ExtraData.Take(header.ExtraData.Length - 65).ToArray(),
                 header.MixHash,
                 header.Nonce
-            );
+            });
         }
 
-        public byte[] Encode(BlockHeader header)
+        public byte[] Encode(BlockHeader header, bool legacyMode = false)
         {
-            return RLP.RLP.EncodeElementsAndList(
-                header.ParentHash,
-                header.UnclesHash,
-                header.Coinbase.HexToByteArray(),
-                header.StateRoot,
-                header.TransactionsHash,
-                header.ReceiptHash,
-                header.LogsBloom,
-                header.Difficulty.ToBytesForRLPEncoding(),
-                header.BlockNumber.ToBytesForRLPEncoding(),
-                header.GasLimit.ToBytesForRLPEncoding(),
-                header.GasUsed.ToBytesForRLPEncoding(),
-                header.Timestamp.ToBytesForRLPEncoding(),
-                header.ExtraData,
-                header.MixHash,
-                header.Nonce
+            if (!legacyMode && header.BaseFee != null)
+            {
+                return RLP.RLP.EncodeDataItemsAsElementOrListAndCombineAsList(new byte[][]
+                    {
+                        header.ParentHash,
+                        header.UnclesHash,
+                        header.Coinbase.HexToByteArray(),
+                        header.StateRoot,
+                        header.TransactionsHash,
+                        header.ReceiptHash,
+                        header.LogsBloom,
+                        header.Difficulty.ToBytesForRLPEncoding(),
+                        header.BlockNumber.ToBytesForRLPEncoding(),
+                        header.GasLimit.ToBytesForRLPEncoding(),
+                        header.GasUsed.ToBytesForRLPEncoding(),
+                        header.Timestamp.ToBytesForRLPEncoding(),
+                        header.ExtraData,
+                        header.MixHash,
+                        header.Nonce,
+                        header.BaseFee.Value.ToBytesForRLPEncoding()
+                    }
+                );
+            }
+
+            return RLP.RLP.EncodeDataItemsAsElementOrListAndCombineAsList(new byte[][]
+                {
+                    header.ParentHash,
+                    header.UnclesHash,
+                    header.Coinbase.HexToByteArray(),
+                    header.StateRoot,
+                    header.TransactionsHash,
+                    header.ReceiptHash,
+                    header.LogsBloom,
+                    header.Difficulty.ToBytesForRLPEncoding(),
+                    header.BlockNumber.ToBytesForRLPEncoding(),
+                    header.GasLimit.ToBytesForRLPEncoding(),
+                    header.GasUsed.ToBytesForRLPEncoding(),
+                    header.Timestamp.ToBytesForRLPEncoding(),
+                    header.ExtraData,
+                    header.MixHash,
+                    header.Nonce
+                }
             );
         }
 
-        public BlockHeader Decode(byte[] rawdata)
+        public BlockHeader Decode(byte[] rawdata, bool legacyMode = false)
         {
             var decodedList = RLP.RLP.Decode(rawdata);
             var decodedElements = (RLPCollection)decodedList;
@@ -80,6 +129,11 @@ namespace Nethereum.Model
             blockHeader.ExtraData = decodedElements[12].RLPData;
             blockHeader.MixHash = decodedElements[13].RLPData;
             blockHeader.Nonce = decodedElements[14].RLPData;
+            if (!legacyMode)
+            {
+                blockHeader.BaseFee = decodedElements[15].RLPData.ToBigIntegerFromRLPDecoded();
+            }
+
             return blockHeader;
         }
     }

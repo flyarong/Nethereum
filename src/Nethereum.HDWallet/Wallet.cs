@@ -5,6 +5,7 @@ using Nethereum.Util;
 using Nethereum.Web3.Accounts;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using KeyPath = NBitcoin.KeyPath;
 
 namespace Nethereum.HdWallet
@@ -39,7 +40,7 @@ namespace Nethereum.HdWallet
         private Wallet(string path = DEFAULT_PATH, IRandom random = null)
         {
             Path = path;
-#if NETCOREAPP2_1 || NETCOREAPP3_1 || NETSTANDARD2_0 || NET5_0
+#if NETCOREAPP2_1 || NETCOREAPP3_1 || NETSTANDARD2_0 || NET5_0_OR_GREATER || NETSTANDARD2_1
             if (random == null) random = new RandomNumberGeneratorRandom();
 #else
             if (random == null) random = new SecureRandom();
@@ -56,7 +57,7 @@ namespace Nethereum.HdWallet
         public string Seed { get; private set; }
         public string[] Words { get; private set; }
 
-        public bool IsMneumonicValidChecksum { get; private set; }
+        public bool IsMnemonicValidChecksum { get; private set; }
 
         public string Path { get; }
 
@@ -64,20 +65,20 @@ namespace Nethereum.HdWallet
 
         private void InitialiseSeed(Wordlist wordlist, WordCount wordCount, string seedPassword = null)
         {
-            var mneumonic = new Mnemonic(wordlist, wordCount);
-            Seed = mneumonic.DeriveSeed(seedPassword).ToHex();
-            Words = mneumonic.Words;
-            IsMneumonicValidChecksum = mneumonic.IsValidChecksum;
+            var mnemonic = new Mnemonic(wordlist, wordCount);
+            Seed = mnemonic.DeriveSeed(seedPassword).ToHex();
+            Words = mnemonic.Words;
+            IsMnemonicValidChecksum = mnemonic.IsValidChecksum;
             var keyPath = new KeyPath(GetMasterPath());
             _masterKey = new ExtKey(Seed).Derive(keyPath);
         }
 
         private void InitialiseSeed(string words, string seedPassword = null)
         {
-            var mneumonic = new Mnemonic(words);
-            Seed = mneumonic.DeriveSeed(seedPassword).ToHex();
-            Words = mneumonic.Words;
-            IsMneumonicValidChecksum = mneumonic.IsValidChecksum;
+            var mnemonic = new Mnemonic(words);
+            Seed = mnemonic.DeriveSeed(seedPassword).ToHex();
+            Words = mnemonic.Words;
+            IsMnemonicValidChecksum = mnemonic.IsValidChecksum;
             var keyPath = new KeyPath(GetMasterPath());
             _masterKey = new ExtKey(Seed).Derive(keyPath);
         }
@@ -179,19 +180,19 @@ namespace Nethereum.HdWallet
             return addresses;
         }
 
-        public Account GetAccount(string address, int maxIndexSearch = 20)
+        public Account GetAccount(string address, int maxIndexSearch = 20, BigInteger? chainId = null)
         {
             var privateyKey = GetPrivateKey(address, maxIndexSearch);
             if (privateyKey != null)
-                return new Account(privateyKey);
+                return new Account(privateyKey, chainId);
             return null;
         }
 
-        public Account GetAccount(int index)
+        public Account GetAccount(int index, BigInteger? chainId = null)
         {
             var key = GetEthereumKey(index);
             if (key != null)
-                return new Account(key);
+                return new Account(key, chainId);
             return null;
         }
     }

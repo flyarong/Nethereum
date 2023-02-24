@@ -22,6 +22,13 @@ namespace Nethereum.JsonRpc.Client
             return await SendInnerRequestAsync<T>(request, route).ConfigureAwait(false);
         }
 
+        public virtual async Task<RpcRequestResponseBatch> SendBatchRequestAsync(RpcRequestResponseBatch rpcRequestResponseBatch)
+        {
+            var responses = await SendAsync(rpcRequestResponseBatch.GetRpcRequests()).ConfigureAwait(false);
+            rpcRequestResponseBatch.UpdateBatchItemResponses(responses);
+            return rpcRequestResponseBatch;
+        }
+
         public async Task<T> SendRequestAsync<T>(string method, string route = null, params object[] paramList)
         {
             if (OverridingRequestInterceptor != null)
@@ -32,10 +39,10 @@ namespace Nethereum.JsonRpc.Client
             return await SendInnerRequestAsync<T>(method, route, paramList).ConfigureAwait(false);
         }
 
-        protected void HandleRpcError(RpcResponseMessage response)
+        protected void HandleRpcError(RpcResponseMessage response, string reqMsg)
         {
             if (response.HasError)
-                throw new RpcResponseException(new RpcError(response.Error.Code, response.Error.Message,
+                throw new RpcResponseException(new RpcError(response.Error.Code, response.Error.Message + ": " + reqMsg,
                     response.Error.Data));
         }
 
@@ -43,7 +50,7 @@ namespace Nethereum.JsonRpc.Client
                                                        string route = null)
         {
             var response = await SendAsync(reqMsg, route).ConfigureAwait(false);
-            HandleRpcError(response);
+            HandleRpcError(response, reqMsg.Method);
             try
             {
                 return response.GetResult<T>();
@@ -54,19 +61,19 @@ namespace Nethereum.JsonRpc.Client
             }
         }
 
-        protected virtual async Task<T> SendInnerRequestAsync<T>(RpcRequest request, string route = null)
+        protected virtual Task<T> SendInnerRequestAsync<T>(RpcRequest request, string route = null)
         {
             var reqMsg = new RpcRequestMessage(request.Id,
                                                request.Method,
                                                request.RawParameters);
-            return await SendInnerRequestAsync<T>(reqMsg, route).ConfigureAwait(false);
+            return SendInnerRequestAsync<T>(reqMsg, route);
         }
 
-        protected virtual async Task<T> SendInnerRequestAsync<T>(string method, string route = null,
+        protected virtual Task<T> SendInnerRequestAsync<T>(string method, string route = null,
             params object[] paramList)
         {
             var request = new RpcRequestMessage(Guid.NewGuid().ToString(), method, paramList);
-            return await SendInnerRequestAsync<T>(request, route);
+            return SendInnerRequestAsync<T>(request, route);
         }
 
         public virtual async Task SendRequestAsync(RpcRequest request, string route = null)
@@ -75,16 +82,16 @@ namespace Nethereum.JsonRpc.Client
                 await SendAsync(
                         new RpcRequestMessage(request.Id, request.Method, request.RawParameters), route)
                     .ConfigureAwait(false);
-            HandleRpcError(response);
+            HandleRpcError(response, request.Method);
         }
 
         protected abstract Task<RpcResponseMessage> SendAsync(RpcRequestMessage rpcRequestMessage, string route = null);
-
+        protected abstract Task<RpcResponseMessage[]> SendAsync(RpcRequestMessage[] requests);
         public virtual async Task SendRequestAsync(string method, string route = null, params object[] paramList)
         {
             var request = new RpcRequestMessage(Guid.NewGuid().ToString(), method, paramList);
             var response = await SendAsync(request, route).ConfigureAwait(false);
-            HandleRpcError(response);
+            HandleRpcError(response, method);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Nethereum.ABI.FunctionEncoding.Attributes;
-using Nethereum.ABI.JsonDeserialisation;
+using Nethereum.ABI.ABIDeserialisation;
 using Nethereum.ABI.Model;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.Hex.HexConvertors.Extensions;
@@ -12,7 +12,7 @@ namespace Nethereum.Contracts
     {
         public ContractBuilder(string abi, string contractAddress)
         {
-            ContractABI = new ABIDeserialiser().DeserialiseContract(abi);
+            ContractABI = ABIDeserialiserFactory.DeserialiseContractABI(abi);
             Address = contractAddress;
         }
 
@@ -54,6 +54,14 @@ namespace Nethereum.Contracts
         public FunctionBuilder GetFunctionBuilderBySignature(string signature)
         {
             return new FunctionBuilder(Address, GetFunctionAbiBySignature(signature));
+        }
+
+        public ErrorABI GetErrorAbi(string name)
+        {
+            if (ContractABI == null) throw new Exception("Contract abi not initialised");
+            var errorAbi = ContractABI.Errors.FirstOrDefault(x => x.Name == name);
+            if (errorAbi == null) throw new Exception("Error not found");
+            return errorAbi;
         }
 
 

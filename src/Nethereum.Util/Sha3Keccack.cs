@@ -1,7 +1,8 @@
 ﻿using System.Linq;
 using System.Text;
 using Nethereum.Hex.HexConvertors.Extensions;
-using Org.BouncyCastle.Crypto.Digests;
+using Nethereum.Util.Keccak;
+
 
 namespace Nethereum.Util
 {

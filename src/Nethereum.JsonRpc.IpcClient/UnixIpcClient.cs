@@ -4,7 +4,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net.Sockets;
-using Common.Logging;
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_1_OR_GREATER || NET461_OR_GREATER || NET5_0_OR_GREATER
+using Microsoft.Extensions.Logging;
+#endif
 using Nethereum.JsonRpc.Client;
 using Nethereum.JsonRpc.Client.RpcMessages;
 
@@ -13,8 +15,8 @@ namespace Nethereum.JsonRpc.IpcClient
     public class UnixIpcClient : IpcClientBase
     {
         private readonly object _lockingObject = new object();
-        private readonly ILog _log;
-        public UnixIpcClient(string ipcPath, JsonSerializerSettings jsonSerializerSettings = null, ILog log = null) : base(ipcPath, jsonSerializerSettings)
+        private readonly ILogger _log;
+        public UnixIpcClient(string ipcPath, JsonSerializerSettings jsonSerializerSettings = null, ILogger log = null) : base(ipcPath, jsonSerializerSettings)
         {
             _log = log;
         }
@@ -63,7 +65,7 @@ namespace Nethereum.JsonRpc.IpcClient
              int bytesRead = 0;
             if (Task.Run(async () => 
                     bytesRead = await client.ReceiveAsync(new ArraySegment<byte>(buffer), SocketFlags.None)
-                ).Wait(ForceCompleteReadTotalMiliseconds))
+.ConfigureAwait(false)).Wait(ForceCompleteReadTotalMiliseconds))
             {
                 return bytesRead;
             }
@@ -135,7 +137,7 @@ namespace Nethereum.JsonRpc.IpcClient
             catch (Exception ex)
             {
 
-                var exception = new RpcClientUnknownException("Error occurred when trying to send ipc requests(s)", ex);
+                var exception = new RpcClientUnknownException("Error occurred when trying to send ipc requests(s): " + request.Method, ex);
                 logger.LogException(exception);
                 throw exception;
             }
@@ -143,13 +145,13 @@ namespace Nethereum.JsonRpc.IpcClient
 
 #region IDisposable Support
 
-        private bool disposedValue;
+        private bool _disposedValue;
 
         protected override void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!_disposedValue)
             {
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

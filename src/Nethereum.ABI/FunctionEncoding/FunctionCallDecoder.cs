@@ -58,6 +58,12 @@ namespace Nethereum.ABI.FunctionEncoding
             return functionInput;
         }
 
+        public TError DecodeFunctionCustomError<TError>(TError error, string signature, string encodedErrorData)
+        {
+            return DecodeFunctionInput(error, signature, encodedErrorData);
+        }
+
+
         public ErrorFunction DecodeFunctionError(string output)
         {
             if (ErrorFunction.IsErrorData(output))
@@ -74,12 +80,12 @@ namespace Nethereum.ABI.FunctionEncoding
             return error?.Message;
         }
 
-        public void ThrowIfErrorOnOutput(string output)
+        public void ThrowIfErrorOnOutput(string output, Exception innerException = null)
         {
             var error = DecodeFunctionError(output);
             if(error != null)
             {
-                throw new SmartContractRevertException(error.Message);
+                throw new SmartContractRevertException(error.Message, output, innerException);
             }
         }
 
@@ -148,10 +154,28 @@ namespace Nethereum.ABI.FunctionEncoding
                     Parameter = outputParameter
                 };
 
-                var results = DecodeOutput(output, parmeterOutput);
+                if (outputParameter.ABIType is TupleType tupleType)
+                {
+                    if (typeof(T) == typeof(List<ParameterOutput>))
+                    {
+                        var results = DecodeOutput(output, parmeterOutput);
 
-                if (results.Any())
-                    return (T) results[0].Result;
+                        if (results.Any())
+                            return (T)results[0].Result;
+                    }
+                    else
+                    {
+                        return (T) DecodeAttributes(output.HexToByteArray().Skip(32).ToArray(), typeof(T));
+                    }
+                }
+                else
+                {
+                    var results = DecodeOutput(output, parmeterOutput);
+                    if (results.Any())
+                        return (T)results[0].Result;
+                }
+
+                
             }
 
             return default(T);

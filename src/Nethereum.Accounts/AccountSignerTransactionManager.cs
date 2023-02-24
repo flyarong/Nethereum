@@ -4,26 +4,32 @@ using System.Threading.Tasks;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexTypes;
 using Nethereum.JsonRpc.Client;
-using Nethereum.KeyStore;
-using Nethereum.RPC.Accounts;
+using Nethereum.Model;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.RPC.Eth.Transactions;
 using Nethereum.RPC.NonceServices;
 using Nethereum.RPC.TransactionManagers;
 using Nethereum.Signer;
 using Nethereum.Util;
-using Transaction = Nethereum.Signer.Transaction;
 
 namespace Nethereum.Web3.Accounts
 {
     public class AccountSignerTransactionManager : TransactionManagerBase
     {
         private readonly AccountOfflineTransactionSigner _transactionSigner;
-        public BigInteger? ChainId { get; private set; }
 
-        public AccountSignerTransactionManager(IClient rpcClient, Account account, BigInteger? chainId = null)
+
+        public AccountSignerTransactionManager(IClient rpcClient, Account account, BigInteger? overridingAccountChainId = null)
         {
-            ChainId = chainId;
+            if (overridingAccountChainId == null)
+            {
+                ChainId = account.ChainId;
+            }
+            else
+            {
+                ChainId = overridingAccountChainId;
+            }
+            
             Account = account ?? throw new ArgumentNullException(nameof(account));
             Client = rpcClient;
             _transactionSigner = new AccountOfflineTransactionSigner();
@@ -35,34 +41,39 @@ namespace Nethereum.Web3.Accounts
             ChainId = chainId;
             if (privateKey == null) throw new ArgumentNullException(nameof(privateKey));
             Client = rpcClient;
-            Account = new Account(privateKey);
+            Account = new Account(privateKey, chainId);
             Account.NonceService = new InMemoryNonceService(Account.Address, rpcClient);
             _transactionSigner = new AccountOfflineTransactionSigner();
         }
 
-        public AccountSignerTransactionManager(string privateKey, BigInteger? chainId = null) : this(null, privateKey, chainId)
+        public AccountSignerTransactionManager(string privateKey, BigInteger? chainId = null) : this(null, privateKey,
+            chainId)
         {
-
         }
 
-        public override BigInteger DefaultGas { get; set; } = Transaction.DEFAULT_GAS_LIMIT;
+       
+
+        public override BigInteger DefaultGas { get; set; } = SignedLegacyTransaction.DEFAULT_GAS_LIMIT;
 
 
-        public override Task<string> SendTransactionAsync(TransactionInput transactionInput)
+        public async override Task<string> SendTransactionAsync(TransactionInput transactionInput)
         {
             if (transactionInput == null) throw new ArgumentNullException(nameof(transactionInput));
-            return SignAndSendTransactionAsync(transactionInput);
+            await EnsureChainIdAndChainFeatureIsSetAsync().ConfigureAwait(false);
+            return await SignAndSendTransactionAsync(transactionInput).ConfigureAwait(false);
         }
 
-        public override Task<string> SignTransactionAsync(TransactionInput transaction)
+        public async override Task<string> SignTransactionAsync(TransactionInput transaction)
         {
-            return SignTransactionRetrievingNextNonceAsync(transaction);
+            await EnsureChainIdAndChainFeatureIsSetAsync().ConfigureAwait(false);
+            return await SignTransactionRetrievingNextNonceAsync(transaction).ConfigureAwait(false);
         }
 
         public string SignTransaction(TransactionInput transaction)
         {
             if (transaction == null) throw new ArgumentNullException(nameof(transaction));
-            SetDefaultGasPriceAndCostIfNotSet(transaction);
+            SetDefaultGasIfNotSet(transaction);
+
             return _transactionSigner.SignTransaction((Account) Account, transaction, ChainId);
         }
 
@@ -71,10 +82,12 @@ namespace Nethereum.Web3.Accounts
             if (transaction == null) throw new ArgumentNullException(nameof(transaction));
             if (!transaction.From.IsTheSameAddress(Account.Address))
                 throw new Exception("Invalid account used signing");
+
             var nonce = await GetNonceAsync(transaction).ConfigureAwait(false);
             transaction.Nonce = nonce;
-            var gasPrice = await GetGasPriceAsync(transaction).ConfigureAwait(false);
-            transaction.GasPrice = gasPrice;
+
+            await SetTransactionFeesOrPricingAsync(transaction).ConfigureAwait(false);
+
             return SignTransaction(transaction);
         }
 
@@ -90,6 +103,7 @@ namespace Nethereum.Web3.Accounts
                 Account.NonceService.Client = Client;
                 nonce = await Account.NonceService.GetNextNonceAsync().ConfigureAwait(false);
             }
+
             return nonce;
         }
 

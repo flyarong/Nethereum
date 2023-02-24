@@ -12,10 +12,10 @@ namespace Nethereum.Contracts.ContractHandlers
 #if !DOTNET35
     public class ContractTransactionHandler<TContractMessage> : ContractTransactionHandlerBase, IContractTransactionHandler<TContractMessage> where TContractMessage : FunctionMessage, new()
     {
-        private ITransactionEstimatorHandler<TContractMessage> _estimatorHandler;
-        private ITransactionReceiptPollHandler<TContractMessage> _receiptPollHandler;
-        private ITransactionSenderHandler<TContractMessage> _transactionSenderHandler;
-        private ITransactionSigner<TContractMessage> _transactionSigner;
+        private readonly ITransactionEstimatorHandler<TContractMessage> _estimatorHandler;
+        private readonly ITransactionReceiptPollHandler<TContractMessage> _receiptPollHandler;
+        private readonly ITransactionSenderHandler<TContractMessage> _transactionSenderHandler;
+        private readonly ITransactionSigner<TContractMessage> _transactionSigner;
 
 
         public ContractTransactionHandler(ITransactionManager transactionManager) : base(transactionManager)
@@ -38,7 +38,18 @@ namespace Nethereum.Contracts.ContractHandlers
             return _receiptPollHandler.SendTransactionAsync(contractAddress, functionMessage, tokenSource);
         }
 
-        [Obsolete("Use SendTransactionAndWaitForReceipt instead")]
+        public Task<TransactionReceipt> SendTransactionAndWaitForReceiptAsync(
+            string contractAddress, TContractMessage functionMessage, CancellationToken cancellationToken)
+        {
+            return _receiptPollHandler.SendTransactionAsync(contractAddress, functionMessage, cancellationToken);
+        }
+
+        public Task<TransactionReceipt> SendRequestAndWaitForReceiptAsync(string contractAddress, TContractMessage functionMessage, CancellationToken cancellationToken)
+        {
+            return SendTransactionAndWaitForReceiptAsync(contractAddress, functionMessage, cancellationToken);
+        }
+
+        [Obsolete("Use " + nameof(SendTransactionAndWaitForReceiptAsync) + " instead")]
         public Task<TransactionReceipt> SendRequestAndWaitForReceiptAsync(
             string contractAddress, TContractMessage functionMessage = null, CancellationTokenSource tokenSource = null)
         {
@@ -50,7 +61,7 @@ namespace Nethereum.Contracts.ContractHandlers
             return _transactionSenderHandler.SendTransactionAsync(contractAddress, functionMessage);
         }
 
-        [Obsolete("Use SendTransactionAsync instead")]
+        [Obsolete("Use " + nameof(SendTransactionAsync) + " instead")]
         public Task<string> SendRequestAsync(string contractAddress, TContractMessage functionMessage = null)
         {
             return SendTransactionAsync(contractAddress, functionMessage);
@@ -68,6 +79,8 @@ namespace Nethereum.Contracts.ContractHandlers
         {
             return _estimatorHandler.EstimateGasAsync(contractAddress, functionMessage);
         }
+
+       
     }
 #endif
 

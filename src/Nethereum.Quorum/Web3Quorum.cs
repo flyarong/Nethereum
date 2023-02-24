@@ -2,23 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Headers;
-using System.Numerics;
-using System.Threading.Tasks;
-using Common.Logging;
-using Nethereum.Hex.HexTypes;
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_1_OR_GREATER || NET461_OR_GREATER || NET5_0_OR_GREATER
+using Microsoft.Extensions.Logging;
+#endif
+using Nethereum.Geth;
 using Nethereum.JsonRpc.Client;
 using Nethereum.Quorum.RPC.Interceptors;
 using Nethereum.Quorum.RPC.Services;
-using Nethereum.RPC.Accounts;
-using Nethereum.RPC.Eth.DTOs;
-using Nethereum.RPC.NonceServices;
-using Nethereum.RPC.TransactionManagers;
-using Nethereum.Web3.Accounts;
+
 
 namespace Nethereum.Quorum
 {
 
-    public class Web3Quorum : Web3.Web3, IWeb3Quorum
+    public class Web3Quorum : Web3Geth, IWeb3Quorum
     {
         public Web3Quorum(IClient client, string accountAddress) :base(client)
         {
@@ -33,7 +29,7 @@ namespace Nethereum.Quorum
             TransactionManager.Client = Client;
         }
 
-        public Web3Quorum(UnlockedAccount account, string url = @"http://localhost:8545/", ILog log = null, AuthenticationHeaderValue authenticationHeader = null) : base(url, log, authenticationHeader)
+        public Web3Quorum(UnlockedAccount account, string url = @"http://localhost:8545/", ILogger log = null, AuthenticationHeaderValue authenticationHeader = null) : base(url, log, authenticationHeader)
         {
             TransactionManager = account.TransactionManager;
             TransactionManager.Client = Client;
@@ -44,12 +40,12 @@ namespace Nethereum.Quorum
             ((QuorumTransactionManager) TransactionManager).PrivateUrl = privateUrl;
         }
 
-        public Web3Quorum(QuorumAccount account, string privateUrl, string url = @"http://localhost:8545/", ILog log = null, AuthenticationHeaderValue authenticationHeader = null) : base(account, url, log, authenticationHeader)
+        public Web3Quorum(QuorumAccount account, string privateUrl, string url = @"http://localhost:8545/", ILogger log = null, AuthenticationHeaderValue authenticationHeader = null) : base(account, url, log, authenticationHeader)
         {
             ((QuorumTransactionManager)TransactionManager).PrivateUrl = privateUrl;
         }
 
-        public Web3Quorum(string url = @"http://localhost:8545/", ILog log = null, AuthenticationHeaderValue authenticationHeader = null) : base(url, log, authenticationHeader)
+        public Web3Quorum(string url = @"http://localhost:8545/", ILogger log = null, AuthenticationHeaderValue authenticationHeader = null) : base(url, log, authenticationHeader)
         {
 
         }
@@ -58,10 +54,26 @@ namespace Nethereum.Quorum
         {
             base.InitialiseInnerServices();
             Quorum = new QuorumChainService(Client);
+            Permission = new PermissionService(Client);
+            Privacy = new PrivacyService(Client);
+            Raft = new RaftService(Client);
+            IBFT = new IBFTService(Client);
+            ContractExtensions = new ContractExtensionsService(Client);
+            DebugQuorum= new DebugQuorumService(Client);
+
             base.TransactionManager.DefaultGasPrice = 0;
         }
 
         public IQuorumChainService Quorum { get; private set; }
+        public IPermissionService Permission { get; private set; }
+        public IPrivacyService Privacy { get; private set; }
+        public IRaftService Raft { get; private set; }
+        public IIBFTService IBFT { get; private set; }
+
+        public IContractExtensionsService ContractExtensions { get; private set; }
+        public IDebugQuorumService DebugQuorum { get; private set; }
+        
+
 
         public List<string> PrivateFor { get; private set; }
         public string PrivateFrom { get; private set; }

@@ -12,7 +12,7 @@ namespace Nethereum.BlockchainProcessing.BlockProcessing
         {
             foreach (var item in list)
             {
-                if (await item.GetStep<T>().IsMatchAsync(value))
+                if (await item.GetStep<T>().IsMatchAsync(value).ConfigureAwait(false))
                     return true;
             }
 
@@ -23,7 +23,7 @@ namespace Nethereum.BlockchainProcessing.BlockProcessing
         {
             foreach (var item in list)
             {
-                if (await item.IsMatchAsync(value))
+                if (await item.IsMatchAsync(value).ConfigureAwait(false))
                     return true;
             }
 
@@ -42,7 +42,7 @@ namespace Nethereum.BlockchainProcessing.BlockProcessing
             var listResult = new List<BlockProcessingSteps>();
             foreach (var item in list)
             {
-                if (await item.GetStep<T>().IsMatchAsync(value))
+                if (await item.GetStep<T>().IsMatchAsync(value).ConfigureAwait(false))
                     listResult.Add(item);
             }
 
@@ -55,7 +55,7 @@ namespace Nethereum.BlockchainProcessing.BlockProcessing
             var steps = list.GetAllSteps<T>();
             foreach (var step in steps)
             {
-                await step.ExecuteAsync(value);
+                await step.ExecuteAsync(value).ConfigureAwait(false);
             }
         }
         

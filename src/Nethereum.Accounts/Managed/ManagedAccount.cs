@@ -1,9 +1,10 @@
-﻿namespace Nethereum.Web3.Accounts.Managed
-{
-    using Nethereum.RPC.Accounts;
-    using Nethereum.RPC.NonceServices;
-    using Nethereum.RPC.TransactionManagers;
+﻿using Nethereum.RPC.Accounts;
+using Nethereum.RPC.AccountSigning;
+using Nethereum.RPC.NonceServices;
+using Nethereum.RPC.TransactionManagers;
 
+namespace Nethereum.Web3.Accounts.Managed
+{
     public class ManagedAccount : IAccount
     {
         public ManagedAccount(string accountAddress, string password)
@@ -29,6 +30,8 @@
         public ITransactionManager TransactionManager { get; protected set; }
 
         public INonceService NonceService { get; set; }
+
+        public IAccountSigningService AccountSigningService { get; private set; }
 
         protected virtual void InitialiseDefaultTransactionManager()
         {

@@ -1,14 +1,15 @@
 ﻿using Nethereum.GSN.Models;
 using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Model;
 using Nethereum.Signer;
 
 namespace Nethereum.GSN.Extensions
 {
     public static class RelayResponseExtension
     {
-        public static Transaction ToTransaction(this RelayResponse response)
+        public static LegacyTransaction ToTransaction(this RelayResponse response)
         {
-            var tx = new Transaction(
+            var tx = new LegacyTransaction(
                response.To,
                response.Value.Value,
                response.Nonce.Value,

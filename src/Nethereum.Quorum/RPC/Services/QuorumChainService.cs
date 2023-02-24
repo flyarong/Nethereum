@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Nethereum.JsonRpc.Client;
+﻿using Nethereum.JsonRpc.Client;
 using Nethereum.RPC;
-using Nethereum.RPC.Eth.Filters;
-using Nethereum.Web3;
 
 namespace Nethereum.Quorum.RPC.Services
 {
@@ -23,13 +17,13 @@ namespace Nethereum.Quorum.RPC.Services
             NodeInfo = new QuorumNodeInfo(client);
         }
 
-        public IQuorumCanonicalHash CanonicalHash { get; private set; }
-        public IQuorumIsBlockMaker IsBlockMaker { get; private set; }
-        public IQuorumIsVoter IsVoter { get; private set; }
-        public IQuorumMakeBlock MakeBlock { get; private set; }
-        public IQuorumPauseBlockMaker PauseBlockMaker { get; private set; }
-        public IQuorumResumeBlockMaker ResumeBlockMaker { get; private set; }
-        public IQuorumVote Vote { get; private set; }
-        public IQuorumNodeInfo NodeInfo { get; private set; }
+        public IQuorumCanonicalHash CanonicalHash { get; }
+        public IQuorumIsBlockMaker IsBlockMaker { get; }
+        public IQuorumIsVoter IsVoter { get; }
+        public IQuorumMakeBlock MakeBlock { get; }
+        public IQuorumPauseBlockMaker PauseBlockMaker { get; }
+        public IQuorumResumeBlockMaker ResumeBlockMaker { get; }
+        public IQuorumVote Vote { get; }
+        public IQuorumNodeInfo NodeInfo { get; }
 }
 }

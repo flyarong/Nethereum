@@ -1,8 +1,11 @@
 ﻿namespace Nethereum.RPC
 {
+    public enum UnsupportedApiMethods {eth_signTransaction}
     public enum ApiMethods
     {
         net_listening,
+        net_version,
+        net_peerCount,
         eth_chainId,
         eth_protocolVersion,
         eth_syncing,
@@ -10,6 +13,7 @@
         eth_mining,
         eth_hashrate,
         eth_gasPrice,
+        eth_feeHistory,
         eth_accounts,
         eth_blockNumber,
         eth_getBalance,
@@ -74,12 +78,30 @@
         shh_post,
         web3_clientVersion,
         web3_sha3,
-        net_version,
-        net_peerCount,
         personal_listAccounts,
         personal_newAccount,
         personal_unlockAccount,
         personal_lockAccount,
-        personal_sendTransaction
+        personal_sendTransaction,
+        eth_getProof,
+        eth_createAccessList,
+        eth_maxPriorityFeePerGas,
+        debug_getRawTransaction,
+        debug_getBadBlocks,
+        debug_getRawBlock,
+        debug_getRawHeader,
+        debug_getRawReceipts,
+        debug_storageRangeAt,
+
+        //wallet
+        eth_requestAccounts,
+        wallet_requestPermissions,
+        wallet_getPermissions,
+        wallet_addEthereumChain,
+        wallet_switchEthereumChain,
+        wallet_watchAsset,
+        eth_signTypedData_v4,
+        personal_sign
+      
     }
 }

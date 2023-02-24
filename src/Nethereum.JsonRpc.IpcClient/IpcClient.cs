@@ -5,23 +5,28 @@ using System.Text;
 using System.Threading.Tasks;
 using Nethereum.JsonRpc.Client;
 using Newtonsoft.Json;
-using Common.Logging;
 using Nethereum.JsonRpc.Client.RpcMessages;
+
+#if NETSTANDARD2_0_OR_GREATER || NETCOREAPP3_1_OR_GREATER || NET461_OR_GREATER || NET5_0_OR_GREATER
+using Microsoft.Extensions.Logging;
+#endif
 
 namespace Nethereum.JsonRpc.IpcClient
 {
     public class IpcClient : IpcClientBase
     {
         private readonly object _lockingObject = new object();
-        private readonly ILog _log;
+        private readonly ILogger _log;
+
 
         private NamedPipeClientStream _pipeClient;
-      
 
-        public IpcClient(string ipcPath, JsonSerializerSettings jsonSerializerSettings = null, ILog log = null) : base(ipcPath, jsonSerializerSettings)
+
+        public IpcClient(string ipcPath, JsonSerializerSettings jsonSerializerSettings = null, ILogger log = null) : base(ipcPath, jsonSerializerSettings)
         {
             _log = log;
         }
+
 
         private NamedPipeClientStream GetPipeClient()
         {
@@ -52,7 +57,7 @@ namespace Nethereum.JsonRpc.IpcClient
             int bytesRead = 0;
             if (Task.Run(async () =>
                     bytesRead = await client.ReadAsync(buffer, 0, buffer.Length)
-                ).Wait(ForceCompleteReadTotalMiliseconds))
+.ConfigureAwait(false)).Wait(ForceCompleteReadTotalMiliseconds))
             {
                 return bytesRead;
             }
@@ -87,7 +92,7 @@ namespace Nethereum.JsonRpc.IpcClient
             return memoryStream;
         }
 
-        protected override async Task<RpcResponseMessage> SendAsync(RpcRequestMessage request, string route = null)
+        protected override Task<RpcResponseMessage> SendAsync(RpcRequestMessage request, string route = null)
         {
             var logger = new RpcLogger(_log);
             try
@@ -108,7 +113,7 @@ namespace Nethereum.JsonRpc.IpcClient
                             var serializer = JsonSerializer.Create(JsonSerializerSettings);
                             var message = serializer.Deserialize<RpcResponseMessage>(reader);
                             logger.LogResponse(message);
-                            return message;
+                            return Task.FromResult(message);
                         }
                     }
                 }
@@ -123,11 +128,11 @@ namespace Nethereum.JsonRpc.IpcClient
 
         #region IDisposable Support
 
-        private bool disposedValue;
+        private bool _disposedValue;
 
         protected override void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (!_disposedValue)
             {
                 if (disposing)
                     if (_pipeClient != null)
@@ -138,7 +143,7 @@ namespace Nethereum.JsonRpc.IpcClient
                         _pipeClient.Dispose();
                     }
 
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 #endregion

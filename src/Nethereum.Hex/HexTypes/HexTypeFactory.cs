@@ -14,5 +14,14 @@ namespace Nethereum.Hex.HexTypes
                 return HexUTF8String.CreateFromHex(hex);
             throw new NotImplementedException();
         }
+
+        public static object CreateFromObject<T>(object value)
+        {
+            if (value == null) return null; // if null
+            if (typeof(BigInteger) == typeof(T))
+                return new HexBigInteger((long) value);
+
+            throw new NotImplementedException();
+        }
     }
 }

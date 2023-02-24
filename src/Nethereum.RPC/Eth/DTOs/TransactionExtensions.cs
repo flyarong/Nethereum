@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Nethereum.RPC.TransactionTypes;
 using Nethereum.Util;
 using Newtonsoft.Json.Linq;
 
@@ -9,6 +10,17 @@ namespace Nethereum.RPC.Eth.DTOs
 
     public static class TransactionExtensions
     {
+        public static bool Is1559(this Transaction txn)
+        {
+            return txn.Type != null && (byte)txn.Type.Value == (byte)TransactionType.EIP1559;
+        }
+
+        public static bool IsLegacy(this Transaction txn)
+        {
+            return txn.Type != null && (byte)txn.Type.Value == (byte)TransactionType.Legacy;
+        }
+
+
         public static bool IsToAnEmptyAddress(this Transaction txn)
         {
             return txn.To.IsAnEmptyAddress();
@@ -64,7 +76,12 @@ namespace Nethereum.RPC.Eth.DTOs
                 Nonce = txn.Nonce,
                 Value = txn.Value,
                 From = txn.From,
-                To = txn.To
+                To = txn.To,
+                Type = txn.Type,
+                AccessList = txn.AccessList,
+                MaxFeePerGas = txn.MaxFeePerGas,
+                MaxPriorityFeePerGas = txn.MaxPriorityFeePerGas,
+
             };
             return txnInput;
         }

@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Runtime.Serialization;
+using Newtonsoft.Json;
 
 namespace Nethereum.Quorum.RPC.DTOs
 {
@@ -13,7 +14,7 @@ namespace Nethereum.Quorum.RPC.DTOs
             PrivateFor = privateFor;
         }
 
-        [JsonProperty(PropertyName = "privateFor")]
+        [JsonProperty(PropertyName =  "privateFor")]
         public string[] PrivateFor { get; set; }
     }
 }

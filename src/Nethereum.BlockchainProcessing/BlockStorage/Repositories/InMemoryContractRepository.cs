@@ -19,11 +19,11 @@ namespace Nethereum.BlockchainProcessing.BlockStorage.Repositories
 
         public async Task<bool> ExistsAsync(string contractAddress)
         {
-            var existing = await FindByAddressAsync(contractAddress);
+            var existing = await FindByAddressAsync(contractAddress).ConfigureAwait(false);
             return existing != null;
         }
 
-        public Task FillCache() => Task.FromResult(0);
+        public Task FillCacheAsync() => Task.FromResult(0);
 
         public Task<IContractView> FindByAddressAsync(string contractAddress)
         {
@@ -43,7 +43,7 @@ namespace Nethereum.BlockchainProcessing.BlockStorage.Repositories
 
         public async Task UpsertAsync(ContractCreationVO contractCreation)
         {
-            var record = await FindByAddressAsync(contractCreation.ContractAddress);
+            var record = await FindByAddressAsync(contractCreation.ContractAddress).ConfigureAwait(false);
             if(record != null) Records.Remove(record);
             Records.Add(contractCreation.MapToStorageEntityForUpsert());
         }

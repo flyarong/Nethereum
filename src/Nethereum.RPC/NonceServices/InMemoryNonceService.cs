@@ -10,6 +10,7 @@ using Nethereum.RPC.Eth.Transactions;
 namespace Nethereum.RPC.NonceServices
 {
 #if !DOTNET35
+
     public class InMemoryNonceService: INonceService
     {
         public BigInteger CurrentNonce { get; set; } = -1;
@@ -28,7 +29,7 @@ namespace Nethereum.RPC.NonceServices
 
             if (Client == null) throw new NullReferenceException("Client not configured");
             var ethGetTransactionCount = new EthGetTransactionCount(Client);
-            await _semaphoreSlim.WaitAsync();
+            await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
             try
             {
                 var nonce = await ethGetTransactionCount.SendRequestAsync(_account, BlockParameter.CreatePending())
@@ -50,9 +51,9 @@ namespace Nethereum.RPC.NonceServices
             }
         }
 
-        public async Task ResetNonce()
+        public async Task ResetNonceAsync()
         {
-            await _semaphoreSlim.WaitAsync();
+            await _semaphoreSlim.WaitAsync().ConfigureAwait(false);
             try
             {
                 CurrentNonce = -1;

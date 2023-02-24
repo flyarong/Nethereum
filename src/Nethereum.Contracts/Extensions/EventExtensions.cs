@@ -6,7 +6,7 @@ using System.Linq;
 using Nethereum.ABI.FunctionEncoding;
 using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.ABI.Model;
-using Nethereum.Contracts.Comparers;
+using Nethereum.RPC.Eth.DTOs.Comparers;
 using Nethereum.Contracts.Services;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.RPC.Eth.DTOs;
@@ -16,6 +16,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Nethereum.Contracts
 {
+
     public static class EventExtensions
     {
         public static bool IsLogForEvent<TEventDTO>(this JToken log)
@@ -408,6 +409,12 @@ namespace Nethereum.Contracts
             return DecodeAllEvents<TEventDTO>(eventABI, logs);
         }
 
+        public static List<EventLog<TEventDTO>> DecodeAllEvents<TEventDTO>(this List<FilterLog> logs) where TEventDTO : new()
+        {
+            var eventABI = ABITypedRegistry.GetEvent<TEventDTO>();
+            return DecodeAllEvents<TEventDTO>(eventABI, logs.ToArray());
+        }
+
         public static List<EventLog<TEventDTO>> DecodeAllEvents<TEventDTO>(this TransactionReceipt transactionReceipt) where TEventDTO : new()
         {
             return transactionReceipt.Logs.DecodeAllEvents<TEventDTO>();
@@ -454,13 +461,18 @@ namespace Nethereum.Contracts
             }
             return result;
         }
-
+        
         public static EventLog<List<ParameterOutput>> DecodeEventDefaultTopics(this EventABI eventABI, FilterLog log)
         {
             if (!IsLogForEvent(eventABI, log)) return null;
             var eventDecoder = new EventTopicDecoder();
             var eventObject = eventDecoder.DecodeDefaultTopics(eventABI, log.Topics, log.Data);
             return new EventLog<List<ParameterOutput>>(eventObject, log);
+        }
+
+        public static EventLog<List<ParameterOutput>> DecodeEventDefaultTopics(this EventABI eventABI, JToken log)
+        {
+            return DecodeEventDefaultTopics(eventABI, JsonConvert.DeserializeObject<FilterLog>(log.ToString()));
         }
 
         public static EventLog<TEventDTO> DecodeEvent<TEventDTO>(this EventABI eventABI, FilterLog log) where TEventDTO : new()
@@ -541,8 +553,13 @@ namespace Nethereum.Contracts
         public static FilterLog[] Sort(this IEnumerable<FilterLog> logs)
         {
             var list = logs.ToList();    
-            list.Sort(new FilterLogBlockNumberTransactionIndexComparer());
+            list.Sort(new FilterLogBlockNumberTransactionIndexLogIndexComparer());
             return list.ToArray();
+        }
+
+        public static FilterLog[] SortLogs(this IEnumerable<FilterLog> logs)
+        {
+            return logs.Sort();
         }
 
         public static EventLog<TEventDTO>[] Sort<TEventDTO>(this IEnumerable<EventLog<TEventDTO>> events) where TEventDTO : IEventDTO
@@ -551,6 +568,12 @@ namespace Nethereum.Contracts
             list.Sort(new EventLogBlockNumberTransactionIndexComparer<EventLog<TEventDTO>>());
             return list.ToArray();
         }
+
+        public static EventLog<TEventDTO>[] SortLogs<TEventDTO>(this IEnumerable<EventLog<TEventDTO>> events) where TEventDTO : IEventDTO
+        {
+            return events.Sort<TEventDTO>();
+        }
+
 
         public static string EventSignature(this FilterLog log) => log.GetTopic(0);
         public static string IndexedVal1(this FilterLog log) => log.GetTopic(1);

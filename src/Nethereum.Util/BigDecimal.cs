@@ -99,6 +99,7 @@ namespace Nethereum.Util
                     Mantissa = shortened;
                     Exponent++;
                 }
+
                 NormaliseExponentBiggerThanZero();
             }
         }
@@ -109,6 +110,8 @@ namespace Nethereum.Util
         /// <returns>The truncated number</returns>
         internal BigDecimal Truncate(int precision = Precision)
         {
+            //if the precission is 0, 
+            if(precision <= 0) throw new ArgumentException("Precision has to bigger than 0");
             // copy this instance (remember its a struct)
             var shortened = this;
             // save some time because the number of digits is not needed to remove trailing zeros
@@ -119,6 +122,7 @@ namespace Nethereum.Util
                 shortened.Mantissa /= 10;
                 shortened.Exponent++;
             }
+
             return shortened;
         }
 
@@ -126,7 +130,8 @@ namespace Nethereum.Util
         /// Rounds the number to the specified amount of significant digits.
         /// Midpoints (like 0.5 or -0.5) are rounded away from 0 (e.g. to 1 and -1 respectively).
         /// </summary>
-        public BigDecimal RoundAwayFromZero(int significantDigits) {
+        public BigDecimal RoundAwayFromZero(int significantDigits)
+        {
             if (significantDigits < 0 || significantDigits > 2_000_000_000)
                 throw new ArgumentOutOfRangeException(paramName: nameof(significantDigits));
 
@@ -136,7 +141,8 @@ namespace Nethereum.Util
             var shortened = negative ? -this : this;
             shortened.Normalize();
 
-            while (shortened.Exponent < -significantDigits) {
+            while (shortened.Exponent < -significantDigits)
+            {
                 shortened.Mantissa = BigInteger.DivRem(shortened.Mantissa, 10, out var rem);
                 shortened.Mantissa += rem >= 5 ? +1 : 0;
                 shortened.Exponent++;
@@ -151,7 +157,10 @@ namespace Nethereum.Util
         /// <returns>The truncated number</returns>
         public BigDecimal Floor()
         {
-            return Truncate(Mantissa.NumberOfDigits() + Exponent);
+            var precission = Mantissa.NumberOfDigits() + Exponent;
+            if (precission <= 0) return 0;
+
+            return Truncate(precission);
         }
 
         private static int NumberOfDigits(BigInteger value)
@@ -162,7 +171,9 @@ namespace Nethereum.Util
         public override string ToString()
         {
             Normalize();
-            var s = Mantissa.ToString();
+            bool isNegative = Mantissa < 0;
+
+            var s = BigInteger.Abs(Mantissa).ToString();
             if (Exponent != 0)
             {
                 var decimalPos = s.Length + Exponent;
@@ -174,7 +185,8 @@ namespace Nethereum.Util
                 else
                     s = s.PadRight(decimalPos, '0');
             }
-            return s;
+
+            return isNegative ? $"-{s}" : s;
         }
 
         public bool Equals(BigDecimal other)
@@ -208,18 +220,15 @@ namespace Nethereum.Util
             return new BigDecimal(value, 0);
         }
 
+        public static implicit operator BigDecimal(BigInteger value)
+        {
+            return new BigDecimal(value, 0);
+        }
+
         public static implicit operator BigDecimal(double value)
         {
-            var mantissa = (BigInteger) value;
-            var exponent = 0;
-            double scaleFactor = 1;
-            while (Math.Abs(value * scaleFactor - (double) mantissa) > 0)
-            {
-                exponent -= 1;
-                scaleFactor *= 10;
-                mantissa = (BigInteger) (value * scaleFactor);
-            }
-            return new BigDecimal(mantissa, exponent);
+            return new BigDecimal(Convert.ToDecimal(value));         
+
         }
 
         public static implicit operator BigDecimal(decimal value)
@@ -233,6 +242,7 @@ namespace Nethereum.Util
                 scaleFactor *= 10;
                 mantissa = (BigInteger) (value * scaleFactor);
             }
+
             return new BigDecimal(mantissa, exponent);
         }
 
@@ -390,7 +400,31 @@ namespace Nethereum.Util
                 tmp *= Math.Exp(diff);
                 exponent -= diff;
             }
+
             return tmp * Math.Exp(exponent);
+        }
+
+        public static BigDecimal Pow(BigDecimal value, int exponent)
+        {
+            if (exponent < 0)
+                throw new ArgumentOutOfRangeException("exponent", "exp must be >= 0");
+            if (exponent == 0)
+                return new BigDecimal(1) ;
+            if (exponent == 1)
+                return value;
+
+            BigDecimal result = new BigDecimal(1);
+            while (exponent != 0)
+            {
+                if ((exponent & 1) != 0)
+                    result = result * value;
+                if (exponent == 1)
+                    break;
+
+                value = value * value;
+                exponent >>= 1;
+            }
+            return result;
         }
 
         public static BigDecimal Pow(double basis, double exponent)
@@ -402,6 +436,7 @@ namespace Nethereum.Util
                 tmp *= Math.Pow(basis, diff);
                 exponent -= diff;
             }
+            
             return tmp * Math.Pow(basis, exponent);
         }
 
@@ -409,7 +444,8 @@ namespace Nethereum.Util
 
         #region Formatting
 
-        public string ToString(string formatSpecifier, IFormatProvider format) {
+        public string ToString(string formatSpecifier, IFormatProvider format)
+        {
             char fmt = NumberFormatting.ParseFormatSpecifier(formatSpecifier, out int digits);
             if (fmt != 'c' && fmt != 'C')
                 throw new NotImplementedException();

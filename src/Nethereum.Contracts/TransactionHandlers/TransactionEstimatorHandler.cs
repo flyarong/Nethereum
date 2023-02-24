@@ -2,12 +2,14 @@
 using System.Threading.Tasks;
 using Nethereum.ABI.FunctionEncoding;
 using Nethereum.Hex.HexTypes;
+using Nethereum.JsonRpc.Client;
 using Nethereum.RPC.Eth.Transactions;
 using Nethereum.RPC.TransactionManagers;
 
 namespace Nethereum.Contracts.TransactionHandlers
 {
 #if !DOTNET35
+
     public class TransactionEstimatorHandler<TFunctionMessage> :
         TransactionHandlerBase<TFunctionMessage>, 
         ITransactionEstimatorHandler<TFunctionMessage> where TFunctionMessage : FunctionMessage, new()
@@ -25,7 +27,17 @@ namespace Nethereum.Contracts.TransactionHandlers
             var callInput = FunctionMessageEncodingService.CreateCallInput(functionMessage);
             try
             {
-                return await TransactionManager.EstimateGasAsync(callInput).ConfigureAwait(false);
+                if (TransactionManager.EstimateOrSetDefaultGasIfNotSet)
+                {
+                    return await TransactionManager.EstimateGasAsync(callInput).ConfigureAwait(false);
+                }
+
+                return null;
+            }
+            catch(RpcResponseException rpcException)
+            {
+                ContractRevertExceptionHandler.HandleContractRevertException(rpcException);
+                throw;
             }
             catch(Exception)
             {

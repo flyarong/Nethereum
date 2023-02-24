@@ -1,8 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using Nethereum.ABI.FunctionEncoding;
+using Nethereum.ABI.FunctionEncoding.Attributes;
 using Nethereum.ABI.Model;
 using Nethereum.Hex.HexTypes;
 using Nethereum.RPC.Eth.DTOs;
+using Newtonsoft.Json.Linq;
 
 namespace Nethereum.Contracts
 {
@@ -20,7 +24,6 @@ namespace Nethereum.Contracts
             FunctionCallEncoder = new FunctionCallEncoder();
         }
     
-
         public string ContractAddress { get; set; }
 
         protected FunctionCallDecoder FunctionCallDecoder { get; set; }
@@ -40,15 +43,41 @@ namespace Nethereum.Contracts
                 FunctionABI.InputParameters);
         }
 
+        public object[] ConvertJsonToObjectInputParameters(string json)
+        {
+            var jObject = JObject.Parse(json);
+            return jObject.ConvertToFunctionInputParameterValues(FunctionABI);
+        }
+
+        public object[] ConvertJsonToObjectInputParameters(JObject jObject)
+        {
+            return jObject.ConvertToFunctionInputParameterValues(FunctionABI);
+        }
+
+        public JObject DecodeOutputToJObject(string data)
+        {
+            return DecodeOutput(data).ConvertToJObject();
+        }
+
         public List<ParameterOutput> DecodeOutput(string data)
         {
             return FunctionCallDecoder.DecodeDefaultData(data,
                 FunctionABI.OutputParameters);
         }
-        public TReturn DecodeSimpleTypeOutput<TReturn>(string output)
+
+        public TReturn DecodeTypeOutput<TReturn>(string output)
         {
-            return FunctionCallDecoder.DecodeSimpleTypeOutput<TReturn>(
+            var function = FunctionOutputAttribute.GetAttribute<TReturn>();
+            if (function != null)
+            {
+                var instance = Activator.CreateInstance(typeof(TReturn));
+                return DecodeDTOTypeOutput<TReturn>((TReturn)instance, output);
+            }
+            else
+            {
+                return FunctionCallDecoder.DecodeSimpleTypeOutput<TReturn>(
                 GetFirstParameterOrNull(FunctionABI.OutputParameters), output);
+            }
         }
 
         public TReturn DecodeDTOTypeOutput<TReturn>(TReturn functionOuput, string output)
@@ -66,6 +95,12 @@ namespace Nethereum.Contracts
         {
             var encodedInput = FunctionCallEncoder.EncodeRequest(FunctionABI.Sha3Signature);
             return new TransactionInput(encodedInput, from, gas, value);
+        }
+
+        public TransactionInput CreateTransactionInput(HexBigInteger type, string from, HexBigInteger gas, HexBigInteger value, HexBigInteger maxFeePerGas, HexBigInteger maxPriorityFeePerGas)
+        {
+            var encodedInput = FunctionCallEncoder.EncodeRequest(FunctionABI.Sha3Signature);
+            return new TransactionInput(type, encodedInput, ContractAddress, from, gas, value, maxFeePerGas, maxPriorityFeePerGas);
         }
 
         protected CallInput CreateCallInput(string encodedFunctionCall)
@@ -97,6 +132,12 @@ namespace Nethereum.Contracts
         {
             return new TransactionInput(encodedFunctionCall, ContractAddress, from, gas, gasPrice, value);
         }
+
+        protected TransactionInput CreateTransactionInput(HexBigInteger type, string encodedFunctionCall, string from, HexBigInteger gas, HexBigInteger value, HexBigInteger maxFeePerGas, HexBigInteger maxPriorityFeePerGas)
+        {
+            return new TransactionInput(type, encodedFunctionCall, ContractAddress, from, gas, value, maxFeePerGas, maxPriorityFeePerGas);
+        }
+
 
         protected TransactionInput CreateTransactionInput(string encodedFunctionCall,
             TransactionInput input)

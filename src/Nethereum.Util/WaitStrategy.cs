@@ -1,18 +1,16 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 
-namespace Nethereum.Utils
+namespace Nethereum.Util
 {
 #if !NET35
     public class WaitStrategy : IWaitStrategy
     {
         private static readonly int[] WaitIntervals = {1000, 2000, 5000, 10000, 15000};
 
-        public Task Apply(uint retryCount)
+        public Task ApplyAsync(uint retryCount)
         {
-            var intervalMs = retryCount >= WaitIntervals.Length ? 
-                WaitIntervals.Last() : 
-                WaitIntervals[retryCount];
+            var intervalMs = retryCount >= WaitIntervals.Length ? WaitIntervals.Last() : WaitIntervals[retryCount];
 
             return Task.Delay(intervalMs);
         }

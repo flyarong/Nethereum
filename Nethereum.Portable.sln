@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31320.298
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "projects", "projects", "{6EE5CBBB-5BC9-47BB-9CE5-9099B0A91BAB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BuildProjectFile", "projects\BuildProjectFile\BuildProjectFile.csproj", "{AF8EB2BF-3026-4897-984E-DCAFFAC0644E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nethereum.Portable", "projects\Nethereum.Portable\Nethereum.Portable.csproj", "{0F8DA38C-5C65-4545-BFF0-C40EC0CE40B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GenerateCsprojCompileLinks", "projects\GenerateCsprojCompileLinks\GenerateCsprojCompileLinks.csproj", "{CAFAAACD-438A-4DEC-95BF-6D36F636589B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,6 +55,22 @@ Global
 		{0F8DA38C-5C65-4545-BFF0-C40EC0CE40B4}.Release|x64.Build.0 = Release|Any CPU
 		{0F8DA38C-5C65-4545-BFF0-C40EC0CE40B4}.Release|x86.ActiveCfg = Release|Any CPU
 		{0F8DA38C-5C65-4545-BFF0-C40EC0CE40B4}.Release|x86.Build.0 = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|ARM.Build.0 = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|x64.Build.0 = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Debug|x86.Build.0 = Debug|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|ARM.ActiveCfg = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|ARM.Build.0 = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|x64.ActiveCfg = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|x64.Build.0 = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|x86.ActiveCfg = Release|Any CPU
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,6 +78,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{AF8EB2BF-3026-4897-984E-DCAFFAC0644E} = {6EE5CBBB-5BC9-47BB-9CE5-9099B0A91BAB}
 		{0F8DA38C-5C65-4545-BFF0-C40EC0CE40B4} = {6EE5CBBB-5BC9-47BB-9CE5-9099B0A91BAB}
+		{CAFAAACD-438A-4DEC-95BF-6D36F636589B} = {6EE5CBBB-5BC9-47BB-9CE5-9099B0A91BAB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {07A44726-8749-4A9A-8079-FA3C3213BDC1}

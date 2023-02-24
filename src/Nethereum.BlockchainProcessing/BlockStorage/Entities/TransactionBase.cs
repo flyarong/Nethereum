@@ -18,10 +18,13 @@
         public string ReceiptHash { get; set; }
         public string GasUsed { get;set; }
         public string CumulativeGasUsed { get; set; }
+        public string EffectiveGasPrice { get; set; }
         public bool HasLog { get;set; }
         public string Error { get; set; }
         public bool HasVmStack { get; set; }
         public string NewContractAddress { get; set; }
         public bool FailedCreateContract { get; set; }
+        public string MaxFeePerGas { get; internal set; }
+        public string MaxPriorityFeePerGas { get; internal set; }
     }
 }

@@ -4,18 +4,20 @@ using System.Threading.Tasks;
 using Nethereum.ABI.FunctionEncoding;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexTypes;
+using Nethereum.JsonRpc.Client;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.RPC.Eth.Transactions;
 using Nethereum.RPC.TransactionManagers;
+using Newtonsoft.Json.Linq;
 
 namespace Nethereum.Contracts
 {
+
     public abstract class FunctionBase
     {
         private readonly Contract _contract;
         protected FunctionBuilderBase FunctionBuilderBase { get; set; }
-
-        private IEthCall EthCall => _contract.Eth.Transactions.Call;
+        private ContractCall _contractCall;
         protected ITransactionManager TransactionManager => _contract.Eth.TransactionManager;
 
         public string ContractAddress => _contract.Address;
@@ -24,8 +26,19 @@ namespace Nethereum.Contracts
         {
             FunctionBuilderBase = functionBuilder;
             _contract = contract;
+            if (contract.Eth != null) 
+            {
+                _contractCall = new ContractCall(_contract.Eth?.Transactions.Call, _contract.Eth?.DefaultBlock);
+            }
+
         }
 #if !DOTNET35
+
+        public Task<string> CallAsync(CallInput callInput, BlockParameter block = null)
+        {
+            return _contractCall.CallAsync(callInput, block);
+        }
+
         public Task<string> SendTransactionAsync(string from, HexBigInteger gas,
             HexBigInteger value)
         {
@@ -39,7 +52,15 @@ namespace Nethereum.Contracts
    
 
         protected Task<TransactionReceipt> SendTransactionAndWaitForReceiptAsync(TransactionInput transactionInput,
-            CancellationTokenSource receiptRequestCancellationToken = null)
+            CancellationTokenSource cancellationTokenSource = null)
+        {
+            return cancellationTokenSource == null
+                ? SendTransactionAndWaitForReceiptAsync(transactionInput, CancellationToken.None)
+                : SendTransactionAndWaitForReceiptAsync(transactionInput, cancellationTokenSource.Token);
+        }
+
+        protected Task<TransactionReceipt> SendTransactionAndWaitForReceiptAsync(TransactionInput transactionInput,
+            CancellationToken receiptRequestCancellationToken)
         {
             return TransactionManager.TransactionReceiptService.SendRequestAndWaitForReceiptAsync(transactionInput,
                 receiptRequestCancellationToken);
@@ -47,84 +68,50 @@ namespace Nethereum.Contracts
 
         public async Task<byte[]> CallRawAsync(CallInput callInput)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput, _contract.Eth.DefaultBlock)
-                        .ConfigureAwait(false);
-
-
+            var result = await CallAsync(callInput).ConfigureAwait(false);
             return result.HexToByteArray();
         }
 
         public async Task<byte[]> CallRawAsync(CallInput callInput, BlockParameter block)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput, block)
-                        .ConfigureAwait(false);
-
+            var result = await CallAsync(callInput, block).ConfigureAwait(false);
             return result.HexToByteArray();
         }
 
         public async Task<List<ParameterOutput>> CallDecodingToDefaultAsync(CallInput callInput, BlockParameter block)
         {
-                var result =
-                await
-                    EthCall.SendRequestAsync(callInput, block)
-                        .ConfigureAwait(false);
-
+            var result = await CallAsync(callInput, block).ConfigureAwait(false);
             return FunctionBuilderBase.DecodeOutput(result);
         }
 
         public async Task<List<ParameterOutput>> CallDecodingToDefaultAsync(CallInput callInput)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput)
-                        .ConfigureAwait(false);
-
+            var result = await CallAsync(callInput).ConfigureAwait(false);
             return FunctionBuilderBase.DecodeOutput(result);
         }
 
         protected async Task<TReturn> CallAsync<TReturn>(CallInput callInput)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput, _contract.Eth.DefaultBlock)
-                        .ConfigureAwait(false);
-
-
-            return FunctionBuilderBase.DecodeSimpleTypeOutput<TReturn>(result);
+            var result = await CallAsync(callInput).ConfigureAwait(false);
+            return FunctionBuilderBase.DecodeTypeOutput<TReturn>(result);
         }
 
         protected async Task<TReturn> CallAsync<TReturn>(CallInput callInput, BlockParameter block)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput, block)
-                        .ConfigureAwait(false);
-
-            return FunctionBuilderBase.DecodeSimpleTypeOutput<TReturn>(result);
+            var result = await CallAsync(callInput, block).ConfigureAwait(false);
+            return FunctionBuilderBase.DecodeTypeOutput<TReturn>(result);
         }
 
         protected async Task<TReturn> CallAsync<TReturn>(TReturn functionOuput, CallInput callInput)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput, _contract.Eth.DefaultBlock)
-                        .ConfigureAwait(false);
-
+            var result = await CallAsync(callInput).ConfigureAwait(false);
             return FunctionBuilderBase.DecodeDTOTypeOutput(functionOuput, result);
         }
 
         protected async Task<TReturn> CallAsync<TReturn>(TReturn functionOuput, CallInput callInput,
             BlockParameter block)
         {
-            var result =
-                await
-                    EthCall.SendRequestAsync(callInput, block)
-                        .ConfigureAwait(false);
-
+            var result = await CallAsync(callInput, block).ConfigureAwait(false);
             return FunctionBuilderBase.DecodeDTOTypeOutput(functionOuput, result);
         }
 
@@ -137,12 +124,10 @@ namespace Nethereum.Contracts
                         TransactionManager.EstimateGasAsync(callInput)
                             .ConfigureAwait(false);
             }
-            catch
+            catch (RpcResponseException rpcException)
             {
-                var result = await EthCall.SendRequestAsync(callInput).ConfigureAwait(false);
-                new FunctionCallDecoder().ThrowIfErrorOnOutput(result);
+                ContractRevertExceptionHandler.HandleContractRevertException(rpcException);
                 throw;
-                
             }
         }
 #endif
@@ -151,9 +136,9 @@ namespace Nethereum.Contracts
             return FunctionBuilderBase.DecodeInput(data);
         }
 
-        public TReturn DecodeSimpleTypeOutput<TReturn>(string output)
+        public TReturn DecodeTypeOutput<TReturn>(string output)
         {
-            return FunctionBuilderBase.DecodeSimpleTypeOutput<TReturn>(output);
+            return FunctionBuilderBase.DecodeTypeOutput<TReturn>(output);
         }
 
         public TReturn DecodeDTOTypeOutput<TReturn>(TReturn functionOuput, string output)
@@ -170,6 +155,16 @@ namespace Nethereum.Contracts
             HexBigInteger value)
         {
             return FunctionBuilderBase.CreateTransactionInput(from, gas, value);
+        }
+
+        public object[] ConvertJsonToObjectInputParameters(string json)
+        {
+            return FunctionBuilderBase.ConvertJsonToObjectInputParameters(json);
+        }
+
+        public object[] ConvertJsonToObjectInputParameters(JObject jObject)
+        {
+            return FunctionBuilderBase.ConvertJsonToObjectInputParameters(jObject);
         }
     }
 }

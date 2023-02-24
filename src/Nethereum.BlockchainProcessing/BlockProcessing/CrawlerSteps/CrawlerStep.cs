@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Nethereum.Contracts.Services;
@@ -7,7 +8,7 @@ namespace Nethereum.BlockchainProcessing.BlockProcessing.CrawlerSteps
 {
     public abstract class CrawlerStep<TParentStep, TProcessStep>
     {
-        //TODO: Disable step and / or handlers
+        public bool Enabled { get; set; } = true;
         protected IEthApiContractService EthApi { get; }
         public CrawlerStep(
             IEthApiContractService ethApi
@@ -20,14 +21,15 @@ namespace Nethereum.BlockchainProcessing.BlockProcessing.CrawlerSteps
 
         public virtual async Task<CrawlerStepCompleted<TProcessStep>> ExecuteStepAsync(TParentStep parentStep, IEnumerable<BlockProcessingSteps> executionStepsCollection)
         {
-            var processStepValue = await GetStepDataAsync(parentStep);
+            if (!Enabled) throw new Exception("Crawler step is not enabled");
+            var processStepValue = await GetStepDataAsync(parentStep).ConfigureAwait(false);
             if (processStepValue == null) return null;
             var stepsToProcesss =
                 await executionStepsCollection.FilterMatchingStepAsync(processStepValue).ConfigureAwait(false);
 
             if (stepsToProcesss.Any())
             {
-                await stepsToProcesss.ExecuteCurrentStepAsync(processStepValue);
+                await stepsToProcesss.ExecuteCurrentStepAsync(processStepValue).ConfigureAwait(false);
             }
             return new CrawlerStepCompleted<TProcessStep>(stepsToProcesss, processStepValue);
 

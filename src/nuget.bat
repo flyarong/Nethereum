@@ -3,6 +3,16 @@ del /S *.*.nupkg
 del /S *.*.snupkg
 SET releaseSuffix=
 SET targetNet35=false
+SET projectName=
+
+
+cd Nethereum.Web3
+SET projectName=Nethereum.Web3.csproj
+CALL :restorepack
+SET projectName=Nethereum.Web3Lite.csproj
+CALL :restorepack
+SET projectName=
+cd ..
 
 cd Nethereum.Hex
 CALL :restorepack
@@ -20,9 +30,6 @@ cd Nethereum.RPC
 CALL :restorepack
 cd ..
 
-cd Nethereum.Web3
-CALL :restorepack
-cd ..
 
 cd Nethereum.StandardToken*
 CALL :restorepack
@@ -72,6 +79,10 @@ cd Nethereum.Signer.AzureKeyVault
 CALL :restorepack
 cd ..
 
+cd Nethereum.Signer.AWSKeyManagement
+CALL :restorepack
+cd ..
+
 cd Nethereum.Signer.Ledger
 CALL :restorepack
 cd ..
@@ -81,10 +92,6 @@ CALL :restorepack
 cd ..
 
 cd Nethereum.Util*
-CALL :restorepack
-cd ..
-
-cd Nethereum.Uport*
 CALL :restorepack
 cd ..
 
@@ -116,7 +123,7 @@ cd Nethereum.StandardNonFungibleTokenERC721
 CALL :restorepack
 cd..
 
-cd Nethereum.Pantheon
+cd Nethereum.Besu
 CALL :restorepack
 cd..
 
@@ -130,7 +137,48 @@ cd..
 
 cd Nethereum.Signer.EIP712
 CALL :restorepack
-cd.
+cd..
+
+cd Nethereum.GnosisSafe
+CALL :restorepack
+cd ..
+
+cd Nethereum.Siwe.Core
+CALL :restorepack
+cd ..
+
+cd Nethereum.Siwe
+CALL :restorepack
+cd ..
+
+cd Nethereum.Optimism
+CALL :restorepack
+cd ..
+
+cd Nethereum.Metamask
+CALL :restorepack
+cd ..
+
+cd Nethereum.Metamask.Blazor
+CALL :restorepack
+cd ..
+
+cd Nethereum.UI
+CALL :restorepack
+cd ..
+
+cd Nethereum.EVM
+CALL :restorepack
+cd ..
+
+cd Nethereum.Merkle
+CALL :restorepack
+cd ..
+
+cd Nethereum.Merkle.Patricia
+CALL :restorepack
+cd ..
+
 
 setlocal
 set DIR=%~dp0
@@ -144,7 +192,7 @@ xcopy *.snupkg packages /s /y
 EXIT /B %ERRORLEVEL%
 
 :restorepack
-dotnet restore /property:ReleaseSuffix=%releaseSuffix% /property:TargetNet35=%targetNet35%
-dotnet build -c Release /property:TargetNet35=%targetNet35% /property:ReleaseSuffix=%releaseSuffix%
-dotnet pack -c Release --include-symbols -p:SymbolPackageFormat=snupkg /property:TargetNet35=%targetNet35% /property:ReleaseSuffix=%releaseSuffix%
+dotnet restore %projectName% /property:ReleaseSuffix=%releaseSuffix% /property:TargetNet35=%targetNet35%
+dotnet build %projectName% -c Release /property:TargetNet35=%targetNet35% /property:ReleaseSuffix=%releaseSuffix%
+dotnet pack %projectName% -c Release --include-symbols -p:SymbolPackageFormat=snupkg /property:TargetNet35=%targetNet35% /property:ReleaseSuffix=%releaseSuffix%
 EXIT /B 0

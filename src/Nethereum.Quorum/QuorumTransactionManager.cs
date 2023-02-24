@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Threading;
 using System.Threading.Tasks;
 using Nethereum.Hex.HexConvertors.Extensions;
 using Nethereum.Hex.HexTypes;
 using Nethereum.JsonRpc.Client;
+using Nethereum.Model;
 using Nethereum.Quorum.Enclave;
-using Nethereum.RPC.Accounts;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.RPC.Eth.Transactions;
 using Nethereum.RPC.NonceServices;
@@ -15,7 +14,6 @@ using Nethereum.RPC.TransactionManagers;
 using Nethereum.Signer;
 using Nethereum.Util;
 using Nethereum.Web3.Accounts;
-using Transaction = Nethereum.Signer.Transaction;
 
 namespace Nethereum.Quorum
 {
@@ -51,18 +49,20 @@ namespace Nethereum.Quorum
 
         }
 
-        public override BigInteger DefaultGas { get; set; } = Transaction.DEFAULT_GAS_LIMIT;
+        public override BigInteger DefaultGas { get; set; } = LegacyTransaction.DEFAULT_GAS_LIMIT;
 
 
-        public override Task<string> SendTransactionAsync(TransactionInput transactionInput)
+        public override async Task<string> SendTransactionAsync(TransactionInput transactionInput)
         {
             if (transactionInput == null) throw new ArgumentNullException(nameof(transactionInput));
-            return SignAndSendTransactionAsync(transactionInput);
+            await EnsureChainIdAndChainFeatureIsSetAsync().ConfigureAwait(false);
+            return await SignAndSendTransactionAsync(transactionInput).ConfigureAwait(false);
         }
 
-        public override Task<string> SignTransactionAsync(TransactionInput transaction)
-        { 
-            return SignTransactionRetrievingNextNonceAsync(transaction);
+        public async override Task<string> SignTransactionAsync(TransactionInput transaction)
+        {
+            await EnsureChainIdAndChainFeatureIsSetAsync().ConfigureAwait(false);
+            return await SignTransactionRetrievingNextNonceAsync(transaction).ConfigureAwait(false);
         }
 
         public string SignTransaction(TransactionInput transaction)
@@ -77,7 +77,7 @@ namespace Nethereum.Quorum
         {
             if (PrivateFor != null && PrivateFor.Count > 0)
             {
-                var signedData = RLPDecoder.DecodeSigned(txnSigned.HexToByteArray(), 6);
+                var signedData = RLPSignedDataDecoder.DecodeSigned(txnSigned.HexToByteArray(), 6);
 
                 if (signedData.V[0] == 28)
                 {
@@ -88,7 +88,7 @@ namespace Nethereum.Quorum
                     signedData.V[0] = 37;
                 }
 
-                return RLPEncoder.EncodeSigned(signedData, 6).ToHex();
+                return RLPSignedDataEncoder.EncodeSigned(signedData, 6).ToHex();
             }
 
             return txnSigned;
@@ -131,7 +131,7 @@ namespace Nethereum.Quorum
             if (PrivateFor != null && PrivateFor.Count > 0)
             {
                 var enclave = new QuorumEnclave(PrivateUrl);
-                var key = await enclave.StoreRawAsync(Convert.ToBase64String(transaction.Data.HexToByteArray()), PrivateFrom);
+                var key = await enclave.StoreRawAsync(Convert.ToBase64String(transaction.Data.HexToByteArray()), PrivateFrom).ConfigureAwait(false);
                 transaction.Data = Convert.FromBase64String(key).ToHex();
             }
 

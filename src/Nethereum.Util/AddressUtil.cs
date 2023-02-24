@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Nethereum.Hex.HexConvertors.Extensions;
 
 namespace Nethereum.Util
 {
     public class UniqueAddressList : HashSet<string>
     {
-        public UniqueAddressList() : base(new AddressEqualityComparer()) { }
+        public UniqueAddressList() : base(new AddressEqualityComparer())
+        {
+        }
     }
 
 
@@ -40,6 +41,18 @@ namespace Nethereum.Util
             }
         }
 
+        public string ConvertToChecksumAddress(byte[] address)
+        {
+            if (address.Length > 20)
+            {
+                return ConvertToChecksumAddress(address.Skip(address.Length - 20).ToArray().ToHex());
+            }
+            else
+            {
+                return ConvertToChecksumAddress(address.ToHex());
+            }
+        }
+
         public bool IsAnEmptyAddress(string address)
         {
 #if !NET35
@@ -48,14 +61,12 @@ namespace Nethereum.Util
 #else
             if (string.IsNullOrEmpty(address)) return true;
 #endif
-                return address == AddressEmptyAsHex;
-
+            return address == AddressEmptyAsHex;
         }
 
         public bool IsNotAnEmptyAddress(string address)
         {
             return !IsAnEmptyAddress(address);
-
         }
 
         public string AddressValueOrEmpty(string address)
@@ -65,7 +76,7 @@ namespace Nethereum.Util
 
         public bool IsEmptyOrEqualsAddress(string address1, string candidate)
         {
-            return IsAnEmptyAddress(address1) || AreAddressesTheSame(address1,candidate);
+            return IsAnEmptyAddress(address1) || AreAddressesTheSame(address1, candidate);
         }
 
         public bool AreAddressesTheSame(string address1, string address2)
@@ -73,7 +84,8 @@ namespace Nethereum.Util
             if (address1.IsAnEmptyAddress() && address2.IsAnEmptyAddress()) return true;
             if (address1.IsAnEmptyAddress() || address2.IsAnEmptyAddress()) return false;
             //simple string comparison as opposed to use big integer comparison
-            return string.Equals(address1.EnsureHexPrefix()?.ToLowerInvariant(), address2.EnsureHexPrefix()?.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase); 
+            return string.Equals(address1.EnsureHexPrefix()?.ToLowerInvariant(),
+                address2.EnsureHexPrefix()?.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase);
         }
 
         public string ConvertToChecksumAddress(string address)
@@ -128,6 +140,7 @@ namespace Nethereum.Util
                     value <= 7 && address[i].ToString().ToLower() != address[i].ToString())
                     return false;
             }
+
             return true;
         }
     }

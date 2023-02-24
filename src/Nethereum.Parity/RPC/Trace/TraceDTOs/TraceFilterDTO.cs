@@ -1,4 +1,5 @@
-﻿using Nethereum.RPC.Eth.DTOs;
+﻿using System.Runtime.Serialization;
+using Nethereum.RPC.Eth.DTOs;
 using Newtonsoft.Json;
 
 namespace Nethereum.Parity.RPC.Trace.TraceDTOs
@@ -8,38 +9,38 @@ namespace Nethereum.Parity.RPC.Trace.TraceDTOs
         /// <summary>
         ///     From this block
         /// </summary>
-        [JsonProperty(PropertyName = "fromBlock")]
+        [JsonProperty(PropertyName =  "fromBlock")]
         public BlockParameter FromBlock { get; set; }
 
         /// <summary>
         ///     To this block
         /// </summary>
-        [JsonProperty(PropertyName = "toBlock")]
+        [JsonProperty(PropertyName =  "toBlock")]
         public BlockParameter ToBlock { get; set; }
 
         /// <summary>
         ///     From address
         /// </summary>
-        [JsonProperty(PropertyName = "fromAddress")]
+        [JsonProperty(PropertyName =  "fromAddress")]
         public string[] FromAddresses { get; set; }
 
         /// <summary>
         ///     Count
         /// </summary>
-        [JsonProperty(PropertyName = "count")]
+        [JsonProperty(PropertyName =  "count")]
         public int Count { get; set; }
 
 
         /// <summary>
         ///    After (optional) The offset trace number
         /// </summary>
-        [JsonProperty(PropertyName = "after")]
+        [JsonProperty(PropertyName =  "after")]
         public int After { get; set; }
 
         /// <summary>
         ///     To address
         /// </summary>
-        [JsonProperty(PropertyName = "toAddress")]
+        [JsonProperty(PropertyName =  "toAddress")]
         public string[] ToAddress { get; set; }
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Nethereum.ABI.FunctionEncoding;
+using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.JsonRpc.Client;
 using Nethereum.RPC.Eth.DTOs;
 using Nethereum.RPC.Eth.Services;
 using Nethereum.RPC.Eth.Transactions;
@@ -17,14 +19,29 @@ namespace Nethereum.Contracts.Services
 #if !DOTNET35
         public async Task<string> SendRequestAsync(string transactionHash)
         {
-            var transaction = await _apiTransactionsService.GetTransactionByHash.SendRequestAsync(transactionHash);
-            var errorHex = await _apiTransactionsService.Call.SendRequestAsync(transaction.ConvertToTransactionInput(), new BlockParameter(transaction.BlockNumber));
-            
-            if (ErrorFunction.IsErrorData(errorHex))
+            var transaction = await _apiTransactionsService.GetTransactionByHash.SendRequestAsync(transactionHash).ConfigureAwait(false);
+            var transactionInput = transaction.ConvertToTransactionInput();
+            var functionCallDecoder = new FunctionCallDecoder();
+            if (transactionInput.MaxFeePerGas != null)
             {
-                return new FunctionCallDecoder().DecodeFunctionErrorMessage(errorHex);
+                transactionInput.GasPrice = null;
             }
-            return string.Empty;
+            try
+            {
+                var errorHex = await _apiTransactionsService.Call.SendRequestAsync(transactionInput, new BlockParameter(transaction.BlockNumber)).ConfigureAwait(false);
+
+                if (ErrorFunction.IsErrorData(errorHex))
+                {
+                    return functionCallDecoder.DecodeFunctionErrorMessage(errorHex);
+                }
+                return string.Empty;
+
+            }
+            catch (RpcResponseException rpcException)
+            {
+                ContractRevertExceptionHandler.HandleContractRevertException(rpcException);
+                throw;
+            }
         }
 #endif
     }
